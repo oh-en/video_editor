@@ -6,6 +6,7 @@
 from tkinter import *
 import sys
 import threading
+import os
 
 # import filedialog module 
 from tkinter import filedialog
@@ -24,23 +25,39 @@ class PrintLogger():  # create file like object
 
 
 def browsevideo():
-    global video
-    video = filedialog.askdirectory()
-    video_folder_name = video.split('/')[-1]
+    global path_to_videotxt
+    video_path = filedialog.askdirectory()
+    video_folder_name = video_path.split('/')[-1]
 
-    # Change label contents
     button_video.configure(text="Folder Opened: " + video_folder_name)
-    print(video)
+
+    # takes in a folder and creates a .txt file ready to be concat by ffmpeg
+    with open('video_file_paths.txt', 'w') as f:
+        for file in os.listdir(video_path):
+            f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file)))+ '\n')
+
+    path_to_videotxt = os.path.abspath('video_file_paths.txt')
+    print(path_to_videotxt)
 
 
 def browseaudio():
-    global audio
-    audio = filedialog.askopenfilename()
-    audio_folder_name = audio.split('/')[-1]
+
+    global path_to_audiotxt
+
+    audio_path = filedialog.askopenfilename()
+    audio_folder_name = audio_path.split('/')[-1]
 
     # Change label contents
     button_audio.configure(text="File Opened: " + audio_folder_name)
-    print(audio)
+
+
+    # takes in an audio file and creates a .txt of the same thing repeated to be concat by ffmpeg
+    with open('audio_file_paths.txt', 'w') as f:
+        for i in range(20): # repeat the same song 20 times so that it's definitely longer than the video
+            f.write('file ' + "'{}'".format(os.path.abspath(audio_path)) + '\n')
+
+    path_to_audiotxt = os.path.abspath('audio_file_paths.txt')
+    print(path_to_audiotxt)
 
 
 def make_video():
@@ -57,7 +74,9 @@ def make_video():
 
     all_videos = []
     for file in os.listdir(video):
-        all_videos.append(VideoFileClip(os.path.join(video, file)).fx(resize, width=1920))
+        all_videos.append(VideoFileClip(os.path.join(video, file))
+                          .fx(resize, width=1920)  # comment out if you want to keep the 4k
+                          )
 
     final = concatenate_videoclips(all_videos,
                                    # method='compose',
@@ -65,7 +84,7 @@ def make_video():
 
     logo = (ImageClip("1.png")
             .set_duration(final.duration)
-            .fx(resize, 0.5)  # if you need to resize...
+            #.fx(resize, 0.5)  # if you need to resize...
             # .margin(right=8, top=8, opacity=0)  # (optional) logo-border padding
             .set_pos(("left", "bottom")))
 
