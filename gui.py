@@ -7,6 +7,8 @@ from tkinter import *
 import sys
 import threading
 import os
+import ffmpeg
+import subprocess
 
 # import filedialog module 
 from tkinter import filedialog
@@ -25,24 +27,34 @@ class PrintLogger():  # create file like object
 
 
 def browsevideo():
-    global path_to_videotxt
+    global video_path
+
     video_path = filedialog.askdirectory()
     video_folder_name = video_path.split('/')[-1]
 
     button_video.configure(text="Folder Opened: " + video_folder_name)
 
-    # takes in a folder and creates a .txt file ready to be concat by ffmpeg
-    with open('video_file_paths.txt', 'w') as f:
-        for file in os.listdir(video_path):
-            f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file)))+ '\n')
 
-    path_to_videotxt = os.path.abspath('video_file_paths.txt')
-    print(path_to_videotxt)
+def browse_intro_video():
+    global intro_video_path
+
+    intro_video_path = filedialog.askopenfilename()
+    intro_video_file_name = intro_video_path.split('/')[-1]
+
+    button_introvideo.configure(text="File Opened: " + intro_video_file_name)
+
+
+def browse_outro_video():
+    global outro_video_path
+
+    outro_video_path = filedialog.askopenfilename()
+    outro_video_file_name = outro_video_path.split('/')[-1]
+
+    button_outrovideo.configure(text="File Opened: " + outro_video_file_name)
 
 
 def browseaudio():
-
-    global path_to_audiotxt
+    global audio_path
 
     audio_path = filedialog.askopenfilename()
     audio_folder_name = audio_path.split('/')[-1]
@@ -51,53 +63,69 @@ def browseaudio():
     button_audio.configure(text="File Opened: " + audio_folder_name)
 
 
-    # takes in an audio file and creates a .txt of the same thing repeated to be concat by ffmpeg
+def pick_image():
+    global path_to_image
+
+    image_path = filedialog.askopenfilename()
+    image_folder_name = image_path.split('/')[-1]
+
+    # Change label contents
+    button_image.configure(text="File Opened: " + image_folder_name)
+
+    path_to_image = os.path.abspath(image_path)
+
+
+def compile_video():
+    # creates the video file that is read by ffmpeg
+    # if there is an intro video that has been selected, write that first, else just write the videos
+    if intro_video_path:
+        with open('video_file_paths.txt', 'w') as f:
+            f.write('file ' + "'{}'".format(intro_video_path) + '\n')
+            for file in os.listdir(video_path):
+                f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
+        path_to_videotxt = os.path.abspath('video_file_paths.txt')
+    else:
+        with open('video_file_paths.txt', 'w') as f:
+            for file in os.listdir(video_path):
+                f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
+        path_to_videotxt = os.path.abspath('video_file_paths.txt')
+    # if an outro video has been selected, add it to the end of the .txt file
+    if outro_video_path:
+        with open('video_file_paths.txt', 'a') as f:
+            f.write('file ' + "'{}'".format(outro_video_path) + '\n')
+
+    # creates the audio file that is read by ffmpeg
     with open('audio_file_paths.txt', 'w') as f:
-        for i in range(20): # repeat the same song 20 times so that it's definitely longer than the video
+        for i in range(20):  # repeat the same song 20 times so that it's definitely longer than the video
             f.write('file ' + "'{}'".format(os.path.abspath(audio_path)) + '\n')
-
     path_to_audiotxt = os.path.abspath('audio_file_paths.txt')
-    print(path_to_audiotxt)
 
+    # takes in a list of video files on combines them together
+    ffmpeg.input(path_to_videotxt, format='concat', safe=0).output('videos_concat.mp4', c='copy').run(
+        overwrite_output=True)
 
-def make_video():
-    from moviepy.video.io.VideoFileClip import VideoFileClip
-    from moviepy.audio.io.AudioFileClip import AudioFileClip
-    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
-    from moviepy.video.compositing.concatenate import concatenate_videoclips
-    from moviepy.video.VideoClip import ImageClip
-    from moviepy.audio.fx.audio_loop import audio_loop
-    from moviepy.video.fx.resize import resize
-    import os
+    # makes the long audio file
+    ffmpeg.input(path_to_audiotxt, format='concat', safe=0).output('audio_concat.mp3', c='copy').run(
+        overwrite_output=True)
 
-    audio_clip = AudioFileClip(audio)
+    # converts them to 1080p, 10min for 1080p. 30min for 5k
+    # command = "ffmpeg -i videos_concat.mp4 -vf scale=1920:1080 scaled.mp4"
+    # subprocess.call(command, shell=True)
 
-    all_videos = []
-    for file in os.listdir(video):
-        all_videos.append(VideoFileClip(os.path.join(video, file))
-                          .fx(resize, width=1920)  # comment out if you want to keep the 4k
-                          )
+    # takes created concatenated video and adds in the long audio file
+    command = "ffmpeg -i videos_concat.mp4 -i audio_concat.mp3 -map 0:v -map 1:a -c:v copy -shortest output.mp4"
+    subprocess.call(command, shell=True)
 
-    final = concatenate_videoclips(all_videos,
-                                   # method='compose',
-                                   )  # method allows me to avoid glitches with resolution
+    # command = "ffmpeg -i output.mp4 -i 1.png -filter_complex "[0:v][1:v] overlay=0:H-h:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy final.mp4"
+    command = """ffmpeg -i output.mp4 -i {} -filter_complex "overlay=0:H-h" -codec:a copy final.mp4""".format(
+        path_to_image)
+    subprocess.call(command, shell=True)
 
-    logo = (ImageClip("1.png")
-            .set_duration(final.duration)
-            #.fx(resize, 0.5)  # if you need to resize...
-            # .margin(right=8, top=8, opacity=0)  # (optional) logo-border padding
-            .set_pos(("left", "bottom")))
-
-    final = CompositeVideoClip([final, logo])  # for putting text on the clip
-
-    final = final.set_audio(audio_clip.fx(audio_loop, duration=final.duration))
-    final.write_videofile("test_my_videos.mp4",
-                          fps=24,
-                          # bitrate='1000k',
-                          codec='libx264'
-                          # preset='ultrafast',
-                          # threads=6
-                          )
+    os.remove(path_to_videotxt)
+    os.remove(path_to_audiotxt)
+    os.remove('audio_concat.mp3')
+    os.remove('videos_concat.mp4')
+    os.remove('output.mp4')
 
 
 # Create the root window
@@ -122,16 +150,28 @@ button_video = Button(window,
                       text="select video folder",
                       width=45, height=4,
                       command=browsevideo)
+button_introvideo = Button(window,
+                      text="select intro video file",
+                      width=45, height=4,
+                      command=browse_intro_video)
+button_outrovideo = Button(window,
+                      text="select outro video file",
+                      width=45, height=4,
+                      command=browse_outro_video)
 button_audio = Button(window,
                       text="select audio file",
                       width=45, height=4,
                       command=browseaudio)
+button_image = Button(window,
+                      text="select overlay image",
+                      width=45, height=4,
+                      command=pick_image)
 
 button_makevideo = Button(window,
                           text='make video',
                           width=45, height=4,
                           # command=threading.Thread(target=make_video).start())
-                          command=make_video)
+                          command=compile_video)
 
 button_exit = Button(window,
                      text="Exit",
@@ -165,6 +205,11 @@ button_video.place(relx=0, rely=.205)
 # button_audio.grid(column=0, row=2)
 # button_audio.pack(fill=X)
 button_audio.place(relx=0, rely=.41)
+
+button_image.place(relx=.4, rely=.41)
+button_introvideo.place(relx=.4, rely=.21)
+button_outrovideo.place(relx=.4, rely=.61)
+
 
 # button_makevideo.grid(column=1, row=1)
 # button_makevideo.pack(fill=X)
