@@ -75,7 +75,7 @@ def pick_image():
     path_to_image = os.path.abspath(image_path)
 
 def get_state():
-    print(intro_check.get())
+    print(resolution.get())
 
 
 def compile_video():
@@ -193,12 +193,26 @@ button_makevideo = Button(window,
 button_test = Button(window,
                       text="test",
                       width=45, height=4,
-                      command=lambda: print(intro_check.get()))
+                      command=lambda: print(intro_check.get())
+                      #command = get_state
+                      )
 
 button_exit = Button(window,
                      text="Exit",
                      width=45, height=4,
                      command=exit)
+
+resolution = IntVar()
+hd = Radiobutton(window,
+              text="1080p",
+              padx = 20,
+              variable=resolution,
+              value=1)
+_4k = Radiobutton(window,
+              text="4k",
+              padx = 20,
+              variable=resolution,
+              value=2)
 
 # t = Text()
 # t.pack()
@@ -246,8 +260,9 @@ music_check_state.grid(column=0,row=9)
 overlay_check_state.grid(column=0,row=10)
 outro_check_state.grid(column=0,row=11)
 video_check_state.grid(column=0,row=12)
-
-button_test.grid(column=0, row=13)
+hd.grid(column=0,row=13)
+_4k.grid(column=1,row=13)
+button_test.grid(column=0, row=14)
 
 # Let the window wait for any events 
 window.mainloop()
