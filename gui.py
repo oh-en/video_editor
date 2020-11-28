@@ -74,6 +74,9 @@ def pick_image():
 
     path_to_image = os.path.abspath(image_path)
 
+def get_state():
+    print(intro_check.get())
+
 
 def compile_video():
     # creates the video file that is read by ffmpeg
@@ -140,6 +143,19 @@ window.geometry("800x400")
 # Set window background color
 window.config(background="white")
 
+intro_check = IntVar()
+music_check = IntVar()
+overlay_check = IntVar()
+outro_check = IntVar()
+video_check = IntVar()
+#resolution_check = IntVar()
+
+intro_check_state = Checkbutton(window, text="intro", variable=intro_check)
+music_check_state = Checkbutton(window, text="music", variable=music_check)
+overlay_check_state = Checkbutton(window, text="overlay", variable=overlay_check)
+outro_check_state = Checkbutton(window, text="outro", variable=outro_check)
+video_check_state = Checkbutton(window, text="video", variable=video_check)
+
 # Create a File Explorer label 
 label_file_explorer = Label(window,
                             text="Video Maker",
@@ -170,8 +186,14 @@ button_image = Button(window,
 button_makevideo = Button(window,
                           text='make video',
                           width=45, height=4,
-                          # command=threading.Thread(target=make_video).start())
-                          command=compile_video)
+                          # command=threading.Thread(target=compile_video)
+                          command=compile_video
+                          )
+
+button_test = Button(window,
+                      text="test",
+                      width=45, height=4,
+                      command=lambda: print(intro_check.get()))
 
 button_exit = Button(window,
                      text="Exit",
@@ -194,30 +216,38 @@ button_exit = Button(window,
 # in a table like structure by 
 # specifying rows and columns
 
-# label_file_explorer.grid(column=0, row=0)
+label_file_explorer.grid(column=0, row=0)
 # label_file_explorer.pack(fill=X)
-label_file_explorer.place(relx=0, rely=0)
+#label_file_explorer.place(relx=0, rely=0)
 
-# button_video.grid(column=0, row=1)
+button_video.grid(column=0, row=1)
 # button_video.pack(fill=X)
-button_video.place(relx=0, rely=.205)
+#button_video.place(relx=0, rely=.205)
 
-# button_audio.grid(column=0, row=2)
+button_audio.grid(column=0, row=2)
 # button_audio.pack(fill=X)
-button_audio.place(relx=0, rely=.41)
+#button_audio.place(relx=0, rely=.41)
 
-button_image.place(relx=.4, rely=.41)
-button_introvideo.place(relx=.4, rely=.21)
-button_outrovideo.place(relx=.4, rely=.61)
+button_image.grid(column=0, row=3)
+button_introvideo.grid(column=0, row=4)
+button_outrovideo.grid(column=0, row=5)
 
 
-# button_makevideo.grid(column=1, row=1)
+button_makevideo.grid(column=0, row=6)
 # button_makevideo.pack(fill=X)
-button_makevideo.place(relx=0, rely=.615)
+#button_makevideo.place(relx=0, rely=.615)
 
-# button_exit.grid(column=1, row=2)
+button_exit.grid(column=0, row=7)
 # button_exit.pack(fill=X)
-button_exit.place(relx=0, rely=.820)
+#button_exit.place(relx=0, rely=.820)
+
+intro_check_state.grid(column=0,row=8)
+music_check_state.grid(column=0,row=9)
+overlay_check_state.grid(column=0,row=10)
+outro_check_state.grid(column=0,row=11)
+video_check_state.grid(column=0,row=12)
+
+button_test.grid(column=0, row=13)
 
 # Let the window wait for any events 
 window.mainloop()
