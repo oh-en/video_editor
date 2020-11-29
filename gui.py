@@ -34,6 +34,8 @@ def browsevideo():
 
     button_video.configure(text="Folder Opened: " + video_folder_name)
 
+intro_video_path = None # i think this defines the default state incase intro_video isn't selected
+outro_video_path = None # same thing, should get redefined if button pressed
 
 def browse_intro_video():
     global intro_video_path
@@ -193,8 +195,8 @@ button_makevideo = Button(window,
 button_test = Button(window,
                       text="test",
                       width=45, height=4,
-                      command=lambda: print(intro_check.get())
-                      #command = get_state
+                      #command=lambda: print(intro_check.get())
+                      command = get_state
                       )
 
 button_exit = Button(window,
