@@ -10,6 +10,7 @@ import os
 import ffmpeg
 import subprocess
 import cv2
+import shutil
 
 # import filedialog module 
 from tkinter import filedialog
@@ -124,17 +125,26 @@ def compile_video():
         # converts them to 1080p
         if intro_check.get():
             command = "ffmpeg -i {} -vf scale=1920:1080 scaled_intro.mp4".format(intro_video_path)
-            intro_video_path = 'scaled_intro.mp4' # updates the intro_video_path
             subprocess.call(command, shell=True)
+            command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
+            subprocess.call(command, shell=True)
+            intro_video_path = os.path.abspath('good_framerate_intro.mp4') # updates the intro_video_path
+
         os.mkdir('temp_videos')
         for i, file in enumerate(sorted(os.listdir(video_path))):
             command = "ffmpeg -i {} -vf scale=1920:1080 temp_videos/vid_{}.mp4".format(os.path.abspath(os.path.join(video_path, file)), i) # converts every video to the resolution, adds it to temp file
             subprocess.call(command, shell=True)
+            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i,i)
+            subprocess.call(command, shell=True)
+            os.remove('temp_videos/vid_{}.mp4'.format(i))
         video_path = os.path.abspath('temp_videos/') # update the video path to the temp videos
         if outro_check.get():
             command = "ffmpeg -i {} -vf scale=1920:1080 scaled_outro.mp4".format(outro_video_path)
-            outro_video_path = 'scaled_outro.mp4'  # updates the intro_video_path
             subprocess.call(command, shell=True)
+            command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
+            subprocess.call(command, shell=True)
+            outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
+
 
     if resolution.get() == 2:
         # converts them to 4k
@@ -200,6 +210,16 @@ def compile_video():
             os.remove('audio_concat.mp3')
         if os.path.exists('videos_concat.mp4'):
             os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
+        if os.path.exists('scaled_intro.mp4'):
+            os.remove('scaled_intro.mp4')
+        if os.path.exists('scaled_outro.mp4'):
+            os.remove('scaled_outro.mp4')
+        if os.path.exists('temp_videos/'):
+            shutil.rmtree('temp_videos/')
+        if os.path.exists('good_framerate_intro.mp4'):
+            os.remove('good_framerate_intro.mp4')
+        if os.path.exists('good_framerate_outro.mp4'):
+            os.remove('good_framerate_outro.mp4')
         os.remove('output.mp4')
         print('Image Overlay added successfully!')
     else:
@@ -210,6 +230,16 @@ def compile_video():
             os.remove('audio_concat.mp3')
         if os.path.exists('videos_concat.mp4'):
             os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
+        if os.path.exists('scaled_intro.mp4'):
+            os.remove('scaled_intro.mp4')
+        if os.path.exists('scaled_outro.mp4'):
+            os.remove('scaled_outro.mp4')
+        if os.path.exists('temp_videos/'):
+            shutil.rmtree('temp_videos/')
+        if os.path.exists('good_framerate_intro.mp4'):
+            os.remove('good_framerate_intro.mp4')
+        if os.path.exists('good_framerate_outro.mp4'):
+            os.remove('good_framerate_outro.mp4')
 
     print('Finished Creating Final Video')
 

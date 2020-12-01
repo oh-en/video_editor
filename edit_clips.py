@@ -1,5 +1,6 @@
 import ffmpeg
 import os
+import subprocess
 
 # in_file1 = ffmpeg.input('clips/my_gopro/GOPR3879.MP4')
 # in_file2 = ffmpeg.input('clips/my_gopro/GOPR3880.MP4')
@@ -31,4 +32,16 @@ def make_audio_txt_file(audio_path):
             f.write('file ' + "'{}'".format(os.path.abspath(audio_path)) + '\n')
 
 #make_audio_txt_file('audio\11175751_corporate-feel-good-ambient-background_by_bluefoxmusic_preview.mp3')
-make_video_txt_file('clips\JEEP')
+#make_video_txt_file('clips\JEEP')
+
+# video = ffmpeg.input('clips/my_gopro/GOPR3879.MP4')
+# video = ffmpeg.filter(video,'scale', width=1920, height=1080)
+# video = ffmpeg.filter(video,'fps',fps=24,round='up')
+# video = ffmpeg.output(video, 'scaled_outro.mp4', c='copy')
+# video = ffmpeg.run(video)
+
+command = "ffmpeg -i clips/my_gopro/GOPR3879.MP4 -vf scale=1920:1080 scaled_intro.mp4"
+subprocess.call(command, shell=True)
+
+command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate.mp4"
+subprocess.call(command, shell=True)
