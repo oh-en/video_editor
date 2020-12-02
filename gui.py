@@ -9,8 +9,8 @@ import threading
 import os
 import ffmpeg
 import subprocess
-import cv2
 import shutil
+import time
 
 # import filedialog module 
 from tkinter import filedialog
@@ -36,6 +36,7 @@ audio_path = None
 
 def browsevideo():
     global video_path
+    global video_folder_name
 
     video_path = filedialog.askdirectory()
     video_folder_name = video_path.split('/')[-1]
@@ -88,73 +89,73 @@ def get_state():
 
 
 def compile_video():
-
     # first check the resolution, find min h and w. scale to this minimum?
     # maybe i should just follow the radio buttons exactly instead and avoid checks, og 1080p and 4k
-
-    # min_h = 1e6
-    # min_w = 1e6
-
-    # if intro_check.get():
-    #
-    #     vid = cv2.VideoCapture(intro_video_path)
-    #     if vid.get(cv2.CAP_PROP_FRAME_HEIGHT) < min_h:
-    #         min_h = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    #     if vid.get(cv2.CAP_PROP_FRAME_WIDTH) < min_w:
-    #         min_w = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
-    #
-    # for file in os.listdir(video_path):
-    #     vid = cv2.VideoCapture(file)
-    #     if vid.get(cv2.CAP_PROP_FRAME_HEIGHT) < min_h:
-    #         min_h = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    #     if vid.get(cv2.CAP_PROP_FRAME_WIDTH) < min_w:
-    #         min_w = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
-    #
-    # if outro_check.get():
-    #
-    #     vid = cv2.VideoCapture(outro_video_path)
-    #     if vid.get(cv2.CAP_PROP_FRAME_HEIGHT) < min_h:
-    #         min_h = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    #     if vid.get(cv2.CAP_PROP_FRAME_WIDTH) < min_w:
-    #         min_w = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
     global intro_video_path
     global outro_video_path
     global video_path
+    global video_folder_name
+
+    folder = os.path.dirname(video_path)
 
     if resolution.get() == 1:
+        print(time.strftime("%H:%M:%S", time.localtime()),': Converting to 1080p')
         # converts them to 1080p
         if intro_check.get():
             command = "ffmpeg -i {} -vf scale=1920:1080 scaled_intro.mp4".format(intro_video_path)
             subprocess.call(command, shell=True)
             command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
             subprocess.call(command, shell=True)
-            intro_video_path = os.path.abspath('good_framerate_intro.mp4') # updates the intro_video_path
+            intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
 
         os.mkdir('temp_videos')
         for i, file in enumerate(sorted(os.listdir(video_path))):
-            command = "ffmpeg -i {} -vf scale=1920:1080 temp_videos/vid_{}.mp4".format(os.path.abspath(os.path.join(video_path, file)), i) # converts every video to the resolution, adds it to temp file
+            command = "ffmpeg -i {} -vf scale=1920:1080 temp_videos/vid_{}.mp4".format(
+                os.path.abspath(os.path.join(video_path, file)),
+                i)  # converts every video to the resolution, adds it to temp file
             subprocess.call(command, shell=True)
-            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i,i)
+            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
             subprocess.call(command, shell=True)
             os.remove('temp_videos/vid_{}.mp4'.format(i))
-        video_path = os.path.abspath('temp_videos/') # update the video path to the temp videos
+        video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
         if outro_check.get():
             command = "ffmpeg -i {} -vf scale=1920:1080 scaled_outro.mp4".format(outro_video_path)
             subprocess.call(command, shell=True)
             command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
             subprocess.call(command, shell=True)
             outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
-
+        print(time.strftime("%H:%M:%S", time.localtime()), ': Videos successfully converted to 1080p')
 
     if resolution.get() == 2:
         # converts them to 4k
-        command = "ffmpeg -i videos_concat.mp4 -vf scale=3840:2160 scaled.mp4"
-        subprocess.call(command, shell=True)
+        if intro_check.get():
+            command = "ffmpeg -i {} -vf scale=3840:2160 scaled_intro.mp4".format(intro_video_path)
+            subprocess.call(command, shell=True)
+            command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
+            subprocess.call(command, shell=True)
+            intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
 
+        os.mkdir('temp_videos')
+        for i, file in enumerate(sorted(os.listdir(video_path))):
+            command = "ffmpeg -i {} -vf scale=3840:2160 temp_videos/vid_{}.mp4".format(
+                os.path.abspath(os.path.join(video_path, file)),
+                i)  # converts every video to the resolution, adds it to temp file
+            subprocess.call(command, shell=True)
+            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
+            subprocess.call(command, shell=True)
+            os.remove('temp_videos/vid_{}.mp4'.format(i))
+        video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
+        if outro_check.get():
+            command = "ffmpeg -i {} -vf scale=3840:2160 scaled_outro.mp4".format(outro_video_path)
+            subprocess.call(command, shell=True)
+            command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
+            subprocess.call(command, shell=True)
+            outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
 
     # creates the video file that is read by ffmpeg
     # if there is an intro video that has been selected, write that first, else just write the videos
-    if intro_check.get(): # if this box is checked
+    print(time.strftime("%H:%M:%S", time.localtime()), ': Collecting videos to merge')
+    if intro_check.get():  # if this box is checked
         with open('video_file_paths.txt', 'w') as f:
             f.write('file ' + "'{}'".format(intro_video_path) + '\n')
             for file in sorted(os.listdir(video_path)):
@@ -171,14 +172,14 @@ def compile_video():
             f.write('file ' + "'{}'".format(outro_video_path) + '\n')
 
     # takes in a list of video files on combines them together
-    print('Merging Videos')
+    print(time.strftime("%H:%M:%S", time.localtime()),': Merging videos')
     ffmpeg.input(path_to_videotxt, format='concat', safe=0).output('videos_concat.mp4', c='copy').run(
         overwrite_output=True)
-    print('Videos Merged Successfully')
+    print(time.strftime("%H:%M:%S", time.localtime()),': Videos merged successfully')
 
     # makes the long audio file if one has been selected
     if music_check.get():
-        print('Adding Audio Track')
+        print(time.strftime("%H:%M:%S", time.localtime()),': Adding audio to merged video')
 
         # creates the audio file that is read by ffmpeg
         with open('audio_file_paths.txt', 'w') as f:
@@ -192,21 +193,21 @@ def compile_video():
         # takes created concatenated video and adds in the long audio file
         command = "ffmpeg -i videos_concat.mp4 -i audio_concat.mp3 -map 0:v -map 1:a -c:v copy -shortest output.mp4"
         subprocess.call(command, shell=True)
-        print('Audio Added')
+        print(time.strftime("%H:%M:%S", time.localtime()),': Audio added successfully')
     else:
         os.rename('videos_concat.mp4', 'output.mp4')
 
-    # final step, add the image then delete all the temp files
-    # command = "ffmpeg -i output.mp4 -i 1.png -filter_complex "[0:v][1:v] overlay=0:H-h:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy final.mp4"
+    # final step, add the image then delete all the temp files command = "ffmpeg -i output.mp4 -i 1.png
+    # -filter_complex "[0:v][1:v] overlay=0:H-h:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy final.mp4"
     if overlay_check.get():
-        print('Adding Image Overlay...')
+        print(time.strftime("%H:%M:%S", time.localtime()),': Adding image overlay')
         command = """ffmpeg -i output.mp4 -i {} -filter_complex "overlay=0:H-h" -codec:a copy final.mp4""".format(
             path_to_image)
         subprocess.call(command, shell=True)
         os.remove(path_to_videotxt)
-        if audio_path: # if audio was selected, remove the txt file that was created
+        if audio_path:  # if audio was selected, remove the txt file that was created
             os.remove(path_to_audiotxt)
-        if os.path.exists('audio_concat.mp3'): # remove the concat file too
+        if os.path.exists('audio_concat.mp3'):  # remove the concat file too
             os.remove('audio_concat.mp3')
         if os.path.exists('videos_concat.mp4'):
             os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
@@ -221,10 +222,11 @@ def compile_video():
         if os.path.exists('good_framerate_outro.mp4'):
             os.remove('good_framerate_outro.mp4')
         os.remove('output.mp4')
-        print('Image Overlay added successfully!')
+        os.rename('final.mp4', os.path.join(folder, video_folder_name)+'.mp4')
+        print(time.strftime("%H:%M:%S", time.localtime()),': Image overlay added successfully')
     else:
         os.remove(path_to_videotxt)
-        if audio_path: # if audio was selected, remove the txt file that was created
+        if audio_path:  # if audio was selected, remove the txt file that was created
             os.remove(path_to_audiotxt)
         if os.path.exists('audio_concat.mp3'):
             os.remove('audio_concat.mp3')
@@ -240,8 +242,15 @@ def compile_video():
             os.remove('good_framerate_intro.mp4')
         if os.path.exists('good_framerate_outro.mp4'):
             os.remove('good_framerate_outro.mp4')
+        os.rename('output.mp4', os.path.join(folder, video_folder_name) + '.mp4')
 
-    print('Finished Creating Final Video')
+    print(time.strftime("%H:%M:%S", time.localtime()),': Finished creating video!')
+    print('Video located at: ', os.path.abspath(os.path.join(folder, video_folder_name+'.mp4')))
+
+
+def makethevideo():
+    quick = threading.Thread(target=compile_video)
+    quick.start()
 
 
 # Create the root window
@@ -251,7 +260,7 @@ window = Tk()
 window.title('File Explorer')
 
 # Set window size 
-window.geometry("750x600")
+window.geometry("1500x600")
 
 # Set window background color
 window.config(background="white")
@@ -260,7 +269,7 @@ intro_check = IntVar()
 music_check = IntVar()
 overlay_check = IntVar()
 outro_check = IntVar()
-video_check = IntVar() # I'm not sure if I'm going to use this button
+video_check = IntVar()  # I'm not sure if I'm going to use this button
 # resolution_check = IntVar()
 
 intro_check_state = Checkbutton(window, text="intro", variable=intro_check)
@@ -275,29 +284,29 @@ label_file_explorer = Label(window,
                             width=50, height=5,
                             fg="blue")
 video_label = Label(window,
-                            text="Select Video",
-                            width=50, height=5,
-                            #fg="blue"
+                    text="Select Video",
+                    width=50, height=5,
+                    # fg="blue"
                     )
 audio_label = Label(window,
-                            text="Select Audio",
-                            width=50, height=5,
-                            #fg="blue"
+                    text="Select Audio",
+                    width=50, height=5,
+                    # fg="blue"
                     )
 image_label = Label(window,
-                            text="Select Image",
-                            width=50, height=5,
-                            #fg="blue"
+                    text="Select Image",
+                    width=50, height=5,
+                    # fg="blue"
                     )
 intro_label = Label(window,
-                            text="Select Intro",
-                            width=50, height=5,
-                            #fg="blue"
+                    text="Select Intro",
+                    width=50, height=5,
+                    # fg="blue"
                     )
 outro_label = Label(window,
-                            text="Select Outro",
-                            width=50, height=5,
-                            #fg="blue"
+                    text="Select Outro",
+                    width=50, height=5,
+                    # fg="blue"
                     )
 
 button_video = Button(window,
@@ -324,8 +333,8 @@ button_image = Button(window,
 button_makevideo = Button(window,
                           text='make video',
                           width=50, height=10,
-                          # command=threading.Thread(target=compile_video)
-                          command=compile_video
+                          # command=threading.Thread(target=lambda: compile_video)
+                          command=makethevideo
                           )
 
 button_test = Button(window,
@@ -342,7 +351,7 @@ button_exit = Button(window,
 
 resolution = IntVar()
 OG = Radiobutton(window,
-                 text="Original Resolution (Note: All videos must have the same resolution)",
+                 text="Original Resolution (Note: All videos must have the same resolution and frame rate)",
                  padx=20,
                  variable=resolution,
                  value=0)
@@ -357,41 +366,40 @@ _4k = Radiobutton(window,
                   variable=resolution,
                   value=2)
 
-# t = Text()
-# t.pack()
-# # create instance of file like object
-# pl = PrintLogger(t)
-# # replace sys.stdout with our object
-# sys.stdout = pl
+t = Text()
+t.place(x=750, y=0)
+# create instance of file like object
+pl = PrintLogger(t)
+# replace sys.stdout with our object
+sys.stdout = pl
 # sys.stderr = pl
 
 # sys.stdout = open('out.log', 'w')
-# sys.stderr = sys.stdout
+sys.stderr = sys.stdout
 
 # Grid method is chosen for placing 
 # the widgets at respective positions 
 # in a table like structure by 
 # specifying rows and columns
 
-#label_file_explorer.grid(column=0, row=0)
+# label_file_explorer.grid(column=0, row=0)
 # label_file_explorer.pack(fill=X)
 label_file_explorer.place(relx=0, rely=0)
-video_label.place(x=0,y=90)
+video_label.place(x=0, y=90)
 audio_label.place(x=0, y=180)
 image_label.place(x=0, y=270)
 intro_label.place(x=0, y=360)
 outro_label.place(x=0, y=450)
 
-#button_video.grid(column=0, row=1)
+# button_video.grid(column=0, row=1)
 # button_video.pack(fill=X)
 button_video.place(x=350, y=165, anchor=SE)
-button_audio.place(x=350, y=165+90, anchor=SE)
-button_image.place(x=350, y=165+90*2, anchor=SE)
-button_introvideo.place(x=350, y=165+90*3, anchor=SE)
-button_outrovideo.place(x=350, y=165+90*4, anchor=SE)
+button_audio.place(x=350, y=165 + 90, anchor=SE)
+button_image.place(x=350, y=165 + 90 * 2, anchor=SE)
+button_introvideo.place(x=350, y=165 + 90 * 3, anchor=SE)
+button_outrovideo.place(x=350, y=165 + 90 * 4, anchor=SE)
 # button_audio.pack(fill=X)
 # button_audio.place(relx=0, rely=.41)
-
 
 
 button_makevideo.place(x=360, y=0)
@@ -403,24 +411,24 @@ button_exit.place(x=360, y=180)
 # button_exit.pack(fill=X)
 # button_exit.place(relx=0, rely=.820)
 
-intro_check_state.place(x=350, y=165+90*3-25, anchor=SE)
+intro_check_state.place(x=350, y=165 + 90 * 3 - 25, anchor=SE)
 intro_label.lower()
-music_check_state.place(x=350, y=165+90-25, anchor=SE)
+music_check_state.place(x=350, y=165 + 90 - 25, anchor=SE)
 audio_label.lower()
 
-overlay_check_state.place(x=350, y=165+90*2-25, anchor=SE)
+overlay_check_state.place(x=350, y=165 + 90 * 2 - 25, anchor=SE)
 image_label.lower()
 
-outro_check_state.place(x=350, y=165+90*4-25, anchor=SE)
+outro_check_state.place(x=350, y=165 + 90 * 4 - 25, anchor=SE)
 outro_label.lower()
 
-#video_check_state.place(x=800,y=0)
+# video_check_state.place(x=800,y=0)
 
 
-hd.place(x=90, y=165+90*5-75)
-_4k.place(x=190, y=165+90*5-75)
-OG.place(x=0, y=165+90*5-45)
-#button_test.grid(column=0, row=14)
+hd.place(x=90, y=165 + 90 * 5 - 75)
+_4k.place(x=190, y=165 + 90 * 5 - 75)
+OG.place(x=0, y=165 + 90 * 5 - 45)
+# button_test.grid(column=0, row=14)
 
 # Let the window wait for any events 
 window.mainloop()
