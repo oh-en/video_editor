@@ -35,11 +35,11 @@ audio_path = None
 
 
 def browsevideo():
-    global video_path
+    global video_path_head
     global video_folder_name
 
-    video_path = filedialog.askdirectory()
-    video_folder_name = video_path.split('/')[-1]
+    video_path_head = filedialog.askdirectory()
+    video_folder_name = video_path_head.split('/')[-1]
 
     button_video.configure(text="Folder Opened: " + video_folder_name)
 
@@ -93,159 +93,190 @@ def compile_video():
     # maybe i should just follow the radio buttons exactly instead and avoid checks, og 1080p and 4k
     global intro_video_path
     global outro_video_path
-    global video_path
-    global video_folder_name
+    #global video_path
+    #global video_folder_name
+    global video_path_head
 
-    folder = os.path.dirname(video_path)
-
-    if resolution.get() == 1:
-        print(time.strftime("%H:%M:%S", time.localtime()),': Converting to 1080p')
-        # converts them to 1080p
-        if intro_check.get():
-            command = "ffmpeg -i {} -vf scale=1920:1080 scaled_intro.mp4".format(intro_video_path)
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
-            subprocess.call(command, shell=True)
-            intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
-
-        os.mkdir('temp_videos')
-        for i, file in enumerate(sorted(os.listdir(video_path))):
-            command = "ffmpeg -i {} -vf scale=1920:1080 temp_videos/vid_{}.mp4".format(
-                os.path.abspath(os.path.join(video_path, file)),
-                i)  # converts every video to the resolution, adds it to temp file
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
-            subprocess.call(command, shell=True)
-            os.remove('temp_videos/vid_{}.mp4'.format(i))
-        video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
-        if outro_check.get():
-            command = "ffmpeg -i {} -vf scale=1920:1080 scaled_outro.mp4".format(outro_video_path)
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
-            subprocess.call(command, shell=True)
-            outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
-        print(time.strftime("%H:%M:%S", time.localtime()), ': Videos successfully converted to 1080p')
-
-    if resolution.get() == 2:
-        # converts them to 4k
-        if intro_check.get():
-            command = "ffmpeg -i {} -vf scale=3840:2160 scaled_intro.mp4".format(intro_video_path)
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
-            subprocess.call(command, shell=True)
-            intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
-
-        os.mkdir('temp_videos')
-        for i, file in enumerate(sorted(os.listdir(video_path))):
-            command = "ffmpeg -i {} -vf scale=3840:2160 temp_videos/vid_{}.mp4".format(
-                os.path.abspath(os.path.join(video_path, file)),
-                i)  # converts every video to the resolution, adds it to temp file
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
-            subprocess.call(command, shell=True)
-            os.remove('temp_videos/vid_{}.mp4'.format(i))
-        video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
-        if outro_check.get():
-            command = "ffmpeg -i {} -vf scale=3840:2160 scaled_outro.mp4".format(outro_video_path)
-            subprocess.call(command, shell=True)
-            command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
-            subprocess.call(command, shell=True)
-            outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
-
-    # creates the video file that is read by ffmpeg
-    # if there is an intro video that has been selected, write that first, else just write the videos
-    print(time.strftime("%H:%M:%S", time.localtime()), ': Collecting videos to merge')
-    if intro_check.get():  # if this box is checked
-        with open('video_file_paths.txt', 'w') as f:
-            f.write('file ' + "'{}'".format(intro_video_path) + '\n')
-            for file in sorted(os.listdir(video_path)):
-                f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
-        path_to_videotxt = os.path.abspath('video_file_paths.txt')
-    else:
-        with open('video_file_paths.txt', 'w') as f:
-            for file in sorted(os.listdir(video_path)):  # sorted list here
-                f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
-        path_to_videotxt = os.path.abspath('video_file_paths.txt')
-    # if an outro video has been selected, add it to the end of the .txt file
-    if outro_check.get():
-        with open('video_file_paths.txt', 'a') as f:
-            f.write('file ' + "'{}'".format(outro_video_path) + '\n')
-
-    # takes in a list of video files on combines them together
-    print(time.strftime("%H:%M:%S", time.localtime()),': Merging videos')
-    ffmpeg.input(path_to_videotxt, format='concat', safe=0).output('videos_concat.mp4', c='copy').run(
-        overwrite_output=True)
-    print(time.strftime("%H:%M:%S", time.localtime()),': Videos merged successfully')
-
-    # makes the long audio file if one has been selected
-    if music_check.get():
-        print(time.strftime("%H:%M:%S", time.localtime()),': Adding audio to merged video')
-
-        # creates the audio file that is read by ffmpeg
-        with open('audio_file_paths.txt', 'w') as f:
-            for i in range(20):  # repeat the same song 20 times so that it's definitely longer than the video
-                f.write('file ' + "'{}'".format(os.path.abspath(audio_path)) + '\n')
-        path_to_audiotxt = os.path.abspath('audio_file_paths.txt')
-
-        ffmpeg.input(path_to_audiotxt, format='concat', safe=0).output('audio_concat.mp3', c='copy').run(
-            overwrite_output=True)
-
-        # takes created concatenated video and adds in the long audio file
-        command = "ffmpeg -i videos_concat.mp4 -i audio_concat.mp3 -map 0:v -map 1:a -c:v copy -shortest output.mp4"
-        subprocess.call(command, shell=True)
-        print(time.strftime("%H:%M:%S", time.localtime()),': Audio added successfully')
-    else:
-        os.rename('videos_concat.mp4', 'output.mp4')
-
-    # final step, add the image then delete all the temp files command = "ffmpeg -i output.mp4 -i 1.png
-    # -filter_complex "[0:v][1:v] overlay=0:H-h:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy final.mp4"
-    if overlay_check.get():
-        print(time.strftime("%H:%M:%S", time.localtime()),': Adding image overlay')
-        command = """ffmpeg -i output.mp4 -i {} -filter_complex "overlay=0:H-h" -codec:a copy final.mp4""".format(
-            path_to_image)
-        subprocess.call(command, shell=True)
-        os.remove(path_to_videotxt)
-        if audio_path:  # if audio was selected, remove the txt file that was created
-            os.remove(path_to_audiotxt)
-        if os.path.exists('audio_concat.mp3'):  # remove the concat file too
-            os.remove('audio_concat.mp3')
-        if os.path.exists('videos_concat.mp4'):
-            os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
-        if os.path.exists('scaled_intro.mp4'):
-            os.remove('scaled_intro.mp4')
-        if os.path.exists('scaled_outro.mp4'):
-            os.remove('scaled_outro.mp4')
-        if os.path.exists('temp_videos/'):
-            shutil.rmtree('temp_videos/')
-        if os.path.exists('good_framerate_intro.mp4'):
-            os.remove('good_framerate_intro.mp4')
-        if os.path.exists('good_framerate_outro.mp4'):
-            os.remove('good_framerate_outro.mp4')
+    # first delete all temp files if they exist so you start with a clean slate
+    if os.path.exists('video_file_paths.txt'):
+        os.remove('video_file_paths.txt')
+    if os.path.exists('audio_file_paths.txt'):  # if audio was selected, remove the txt file that was created
+        os.remove('audio_file_paths.txt')
+    if os.path.exists('audio_concat.mp3'):  # remove the concat file too
+        os.remove('audio_concat.mp3')
+    if os.path.exists('videos_concat.mp4'):
+        os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
+    if os.path.exists('scaled_intro.mp4'):
+        os.remove('scaled_intro.mp4')
+    if os.path.exists('scaled_outro.mp4'):
+        os.remove('scaled_outro.mp4')
+    if os.path.exists('temp_videos/'):
+        shutil.rmtree('temp_videos/')
+    if os.path.exists('good_framerate_intro.mp4'):
+        os.remove('good_framerate_intro.mp4')
+    if os.path.exists('good_framerate_outro.mp4'):
+        os.remove('good_framerate_outro.mp4')
+    if os.path.exists('output.mp4'):
         os.remove('output.mp4')
-        os.rename('final.mp4', os.path.join(folder, video_folder_name)+'.mp4')
-        print(time.strftime("%H:%M:%S", time.localtime()),': Image overlay added successfully')
-    else:
-        os.remove(path_to_videotxt)
-        if audio_path:  # if audio was selected, remove the txt file that was created
-            os.remove(path_to_audiotxt)
-        if os.path.exists('audio_concat.mp3'):
-            os.remove('audio_concat.mp3')
-        if os.path.exists('videos_concat.mp4'):
-            os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
-        if os.path.exists('scaled_intro.mp4'):
-            os.remove('scaled_intro.mp4')
-        if os.path.exists('scaled_outro.mp4'):
-            os.remove('scaled_outro.mp4')
-        if os.path.exists('temp_videos/'):
-            shutil.rmtree('temp_videos/')
-        if os.path.exists('good_framerate_intro.mp4'):
-            os.remove('good_framerate_intro.mp4')
-        if os.path.exists('good_framerate_outro.mp4'):
-            os.remove('good_framerate_outro.mp4')
-        os.rename('output.mp4', os.path.join(folder, video_folder_name) + '.mp4')
+    if os.path.exists('final.mp4'):
+        os.remove('final.mp4')
 
-    print(time.strftime("%H:%M:%S", time.localtime()),': Finished creating video!')
-    print('Video located at: ', os.path.abspath(os.path.join(folder, video_folder_name+'.mp4')))
+    for video_path in os.listdir(video_path_head):
+        video_path = os.path.join(video_path_head,video_path)
+
+        folder = video_path
+        video_folder_name = video_path.split('/')[-1]
+        output_path = os.path.abspath(video_folder_name + '.mp4')
+
+        if resolution.get() == 1:
+            print(time.strftime("%H:%M:%S", time.localtime()),': Converting to 1080p')
+            # converts them to 1080p
+            if intro_check.get():
+                command = "ffmpeg -i {} -vf scale=1920:1080 scaled_intro.mp4".format(intro_video_path)
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
+                subprocess.call(command, shell=True)
+                intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
+
+            os.mkdir('temp_videos')
+            for i, file in enumerate(sorted(os.listdir(video_path))):
+                command = "ffmpeg -i {} -vf scale=1920:1080 temp_videos/vid_{}.mp4".format(
+                    os.path.abspath(os.path.join(video_path, file)),
+                    i)  # converts every video to the resolution, adds it to temp file
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
+                subprocess.call(command, shell=True)
+                os.remove('temp_videos/vid_{}.mp4'.format(i))
+            video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
+            if outro_check.get():
+                command = "ffmpeg -i {} -vf scale=1920:1080 scaled_outro.mp4".format(outro_video_path)
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
+                subprocess.call(command, shell=True)
+                outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
+            print(time.strftime("%H:%M:%S", time.localtime()), ': Videos successfully converted to 1080p')
+
+        if resolution.get() == 2:
+            # converts them to 4k
+            if intro_check.get():
+                command = "ffmpeg -i {} -vf scale=3840:2160 scaled_intro.mp4".format(intro_video_path)
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i scaled_intro.mp4 -filter:v fps=fps=24 good_framerate_intro.mp4"
+                subprocess.call(command, shell=True)
+                intro_video_path = os.path.abspath('good_framerate_intro.mp4')  # updates the intro_video_path
+
+            os.mkdir('temp_videos')
+            for i, file in enumerate(sorted(os.listdir(video_path))):
+                command = "ffmpeg -i {} -vf scale=3840:2160 temp_videos/vid_{}.mp4".format(
+                    os.path.abspath(os.path.join(video_path, file)),
+                    i)  # converts every video to the resolution, adds it to temp file
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i temp_videos/vid_{}.mp4 -filter:v fps=fps=24 temp_videos/video_{}.mp4".format(i, i)
+                subprocess.call(command, shell=True)
+                os.remove('temp_videos/vid_{}.mp4'.format(i))
+            video_path = os.path.abspath('temp_videos/')  # update the video path to the temp videos
+            if outro_check.get():
+                command = "ffmpeg -i {} -vf scale=3840:2160 scaled_outro.mp4".format(outro_video_path)
+                subprocess.call(command, shell=True)
+                command = "ffmpeg -i scaled_outro.mp4 -filter:v fps=fps=24 good_framerate_outro.mp4"
+                subprocess.call(command, shell=True)
+                outro_video_path = os.path.abspath('good_framerate_outro.mp4')  # updates the intro_video_path
+
+        # creates the video file that is read by ffmpeg
+        # if there is an intro video that has been selected, write that first, else just write the videos
+        print(time.strftime("%H:%M:%S", time.localtime()), ': Collecting videos to merge')
+        if intro_check.get():  # if this box is checked
+            with open('video_file_paths.txt', 'w') as f:
+                f.write('file ' + "'{}'".format(intro_video_path) + '\n')
+                for file in sorted(os.listdir(video_path)):
+                    f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
+            path_to_videotxt = os.path.abspath('video_file_paths.txt')
+        else:
+            with open('video_file_paths.txt', 'w') as f:
+                for file in sorted(os.listdir(video_path)):  # sorted list here
+                    f.write('file ' + "'{}'".format(os.path.abspath(os.path.join(video_path, file))) + '\n')
+            path_to_videotxt = os.path.abspath('video_file_paths.txt')
+        # if an outro video has been selected, add it to the end of the .txt file
+        if outro_check.get():
+            with open('video_file_paths.txt', 'a') as f:
+                f.write('file ' + "'{}'".format(outro_video_path) + '\n')
+
+        # takes in a list of video files on combines them together
+        print(time.strftime("%H:%M:%S", time.localtime()),': Merging videos')
+        ffmpeg.input(path_to_videotxt, format='concat', safe=0).output('videos_concat.mp4', c='copy').run(
+            overwrite_output=True)
+        print(time.strftime("%H:%M:%S", time.localtime()),': Videos merged successfully')
+
+        # makes the long audio file if one has been selected
+        if music_check.get():
+            print(time.strftime("%H:%M:%S", time.localtime()),': Adding audio to merged video')
+
+            # creates the audio file that is read by ffmpeg
+            with open('audio_file_paths.txt', 'w') as f:
+                for i in range(20):  # repeat the same song 20 times so that it's definitely longer than the video
+                    f.write('file ' + "'{}'".format(os.path.abspath(audio_path)) + '\n')
+            path_to_audiotxt = os.path.abspath('audio_file_paths.txt')
+
+            ffmpeg.input(path_to_audiotxt, format='concat', safe=0).output('audio_concat.mp3', c='copy').run(
+                overwrite_output=True)
+
+            # takes created concatenated video and adds in the long audio file
+            command = "ffmpeg -i videos_concat.mp4 -i audio_concat.mp3 -map 0:v -map 1:a -c:v copy -shortest output.mp4"
+            subprocess.call(command, shell=True)
+            print(time.strftime("%H:%M:%S", time.localtime()),': Audio added successfully')
+        else:
+            os.rename('videos_concat.mp4', 'output.mp4')
+
+        # final step, add the image then delete all the temp files command = "ffmpeg -i output.mp4 -i 1.png
+        # -filter_complex "[0:v][1:v] overlay=0:H-h:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy final.mp4"
+        if overlay_check.get():
+            print(time.strftime("%H:%M:%S", time.localtime()),': Adding image overlay')
+            command = """ffmpeg -i output.mp4 -i {} -filter_complex "overlay=0:H-h" -codec:a copy final.mp4""".format(
+                path_to_image)
+            subprocess.call(command, shell=True)
+            os.remove(path_to_videotxt)
+            if audio_path:  # if audio was selected, remove the txt file that was created
+                os.remove(path_to_audiotxt)
+            if os.path.exists('audio_concat.mp3'):  # remove the concat file too
+                os.remove('audio_concat.mp3')
+            if os.path.exists('videos_concat.mp4'):
+                os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
+            if os.path.exists('scaled_intro.mp4'):
+                os.remove('scaled_intro.mp4')
+            if os.path.exists('scaled_outro.mp4'):
+                os.remove('scaled_outro.mp4')
+            if os.path.exists('temp_videos/'):
+                shutil.rmtree('temp_videos/')
+            if os.path.exists('good_framerate_intro.mp4'):
+                os.remove('good_framerate_intro.mp4')
+            if os.path.exists('good_framerate_outro.mp4'):
+                os.remove('good_framerate_outro.mp4')
+            os.remove('output.mp4')
+            os.rename('final.mp4', output_path)
+            print(time.strftime("%H:%M:%S", time.localtime()),': Image overlay added successfully')
+        else:
+            os.remove(path_to_videotxt)
+            if audio_path:  # if audio was selected, remove the txt file that was created
+                os.remove(path_to_audiotxt)
+            if os.path.exists('audio_concat.mp3'):
+                os.remove('audio_concat.mp3')
+            if os.path.exists('videos_concat.mp4'):
+                os.remove('videos_concat.mp4')  # don't remove the output file, temp solution here for testing
+            if os.path.exists('scaled_intro.mp4'):
+                os.remove('scaled_intro.mp4')
+            if os.path.exists('scaled_outro.mp4'):
+                os.remove('scaled_outro.mp4')
+            if os.path.exists('temp_videos/'):
+                shutil.rmtree('temp_videos/')
+            if os.path.exists('good_framerate_intro.mp4'):
+                os.remove('good_framerate_intro.mp4')
+            if os.path.exists('good_framerate_outro.mp4'):
+                os.remove('good_framerate_outro.mp4')
+            os.rename('output.mp4', output_path)
+
+        print(time.strftime("%H:%M:%S", time.localtime()),': Finished creating video!')
+        print('Video located at: ', output_path)
+        t.see('end')
 
 
 def makethevideo():
