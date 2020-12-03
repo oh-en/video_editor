@@ -116,7 +116,7 @@ def compile_video():
         video_path = os.path.join(video_path_head, video_path)
 
         video_folder_name = video_path.split('/')[-1]
-        output_path = os.path.abspath(video_folder_name + '.mp4')
+        output_path = os.path.abspath(os.path.join(video_path_head, video_folder_name + '.mp4'))
 
         if resolution.get() == 1:
             print(time.strftime("%H:%M:%S", time.localtime()), ': Converting to 1080p...')
